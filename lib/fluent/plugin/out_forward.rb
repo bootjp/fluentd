@@ -258,10 +258,11 @@ module Fluent::Plugin
       end
 
       if @verify_connection_at_startup
-        @nodes.select {|s| !s.standby? }.each do |node|
+        @nodes.each do |node|
           begin
-            node.send_heartbeat
-          rescue Exception => e
+            node.verify_connection
+          rescue StandardError => e
+            log.fatal e.message
             raise Fluent::UnrecoverableError, e.message
           end
         end
@@ -579,6 +580,19 @@ module Fluent::Plugin
 
       def standby?
         @standby
+      end
+
+      def verify_connection
+        sock = @sender.create_transfer_socket(resolved_host, port, @hostname)
+        begin
+          ri = RequestInfo.new(@sender.security ? :helo : :established)
+          if ri.state != :established
+            establish_connection(sock, ri)
+            raise if ri.state != :established
+          end
+        ensure
+          sock.close
+        end
       end
 
       def establish_connection(sock, ri)
