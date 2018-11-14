@@ -774,4 +774,26 @@ EOL
       i.configure(conf)
     end
   end
+
+  test 'not connect check test' do
+    error = false
+    begin
+    @d = d = create_driver(CONFIG + %[
+      verify_connection_at_startup true
+      <buffer tag>
+        flush_mode immediate
+        retry_type periodic
+        retry_wait 30s
+        flush_at_shutdown false # suppress errors in d.instance_shutdown
+      </buffer>
+    ])
+    d.instance_start
+
+    rescue Exception
+      error = true
+    end
+
+    assert error, 'not connect check test'
+  end
+
 end

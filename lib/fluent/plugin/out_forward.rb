@@ -77,6 +77,9 @@ module Fluent::Plugin
     desc 'Ignore DNS resolution and errors at startup time.'
     config_param :ignore_network_errors_at_startup, :bool, default: false
 
+    desc 'Verify that a connection can be made with one of out_forward nodes at the time of startup.'
+    config_param :verify_connection_at_startup, :bool, default: false
+
     desc 'Compress buffered data.'
     config_param :compress, :enum, list: [:text, :gzip], default: :text
 
@@ -252,6 +255,16 @@ module Fluent::Plugin
         @sock_ack_waiting_mutex = Mutex.new
         @sock_ack_waiting = []
         thread_create(:out_forward_receiving_ack, &method(:ack_reader))
+      end
+
+      if @verify_connection_at_startup
+        @nodes.select {|s| !s.standby? }.each do |node|
+          begin
+            node.send_heartbeat
+          rescue Exception => e
+            raise Fluent::UnrecoverableError, e.message
+          end
+        end
       end
     end
 
