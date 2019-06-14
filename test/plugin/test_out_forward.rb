@@ -254,6 +254,18 @@ EOL
     assert_true d.instance.verify_connection_at_startup
   end
 
+  test 'enable_dns_srv is disabled in default' do
+    @d = d = create_driver(CONFIG)
+    assert_false d.instance.enable_dns_srv
+  end
+
+  test 'enable_dns_srv can be enabled' do
+    @d = d = create_driver(CONFIG + %[
+      enable_dns_srv true
+    ])
+    assert_true d.instance.enable_dns_srv
+  end
+
   test 'send tags in str (utf-8 strings)' do
     target_input_driver = create_target_input_driver
 

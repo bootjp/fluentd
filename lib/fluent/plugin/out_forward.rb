@@ -79,6 +79,9 @@ module Fluent::Plugin
     desc 'Verify that a connection can be made with one of out_forward nodes at the time of startup.'
     config_param :verify_connection_at_startup, :bool, default: false
 
+    desc 'Enable name resolution in DNS SRV records'
+    config_param :enable_dns_srv, :bool, default: false
+
     desc 'Compress buffered data.'
     config_param :compress, :enum, list: [:text, :gzip], default: :text
 
