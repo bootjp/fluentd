@@ -266,6 +266,19 @@ EOL
     assert_true d.instance.enable_dns_srv
   end
 
+  test 'srv_service_name is default fluentd' do
+    @d = d = create_driver(CONFIG)
+    assert_equal 'fluentd', d.instance.srv_service_name
+  end
+
+  test 'srv_service_name is can be change' do
+    @d = d = create_driver(CONFIG + %[
+      enable_dns_srv true
+      srv_service_name in_forward
+    ])
+    assert_equal 'in_forward', d.instance.srv_service_name
+  end
+
   test 'send tags in str (utf-8 strings)' do
     target_input_driver = create_target_input_driver
 
