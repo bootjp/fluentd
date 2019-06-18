@@ -21,6 +21,9 @@ require 'base64'
 
 require 'fluent/compat/socket_util'
 
+require 'resolv'
+require 'socket'
+
 module Fluent::Plugin
   class ForwardOutput < Output
     class Error < StandardError; end
@@ -935,7 +938,40 @@ module Fluent::Plugin
         end
       end
 
+      private def resolve_dns_srv(host)
+        adders = Resolv::DNS.new.getresources(host, Resolv::DNS::Resource::IN::SRV)
+        adders.sort! {|a, b|
+          if a.priority != b.priority
+            a.priority <=> b.priority
+          end
+          b.weight <=> a.weight
+        }
+
+        result = []
+        adders.each do |adder|
+          begin
+            # todo change fluent tcp wrapper.
+            sock = TCPSocket.open(adder.target.to_s, adder.port.to_s)
+          rescue StandardError
+            next
+          ensure
+            sock.close rescue nil
+          end
+          result.push "#{adder.target.to_s}:#{adder.port.to_s}"
+        end
+        result
+      end
+
       def resolve_dns!
+        if :enable_dns_srv
+          srv_addr_list = resolve_dns_srv @host
+          # empty srv response. using normal record.
+          unless srv_addr_list.empty?
+            addrinfo = srv_addr_list.first.split(':')
+            @host = addrinfo[0]
+            @port = addrinfo[1]
+          end
+        end
         addrinfo_list = Socket.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
         addrinfo = @sender.dns_round_robin ? addrinfo_list.sample : addrinfo_list.first
         @sockaddr = Socket.pack_sockaddr_in(addrinfo[1], addrinfo[3]) # used by on_heartbeat
