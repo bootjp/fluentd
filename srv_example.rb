@@ -11,9 +11,8 @@ SRV = Struct.new(
 )
 
 def resolve_srv(host)
-  adders = Resolv::DNS.new.getresources(host, Resolv::DNS::Resource::IN::SRV)
-
   res = []
+  adders = Resolv::DNS.new.getresources(host, Resolv::DNS::Resource::IN::SRV)
   adders.each do |addr|
     srv = SRV.new(addr.priority, addr.weight, addr.port, addr.target.to_s)
     res.push(srv)
@@ -25,7 +24,7 @@ def try_connect(host, port)
   begin
     sock = TCPSocket.open(host, port)
     true
-  rescue StandardError
+  rescue SocketError, SystemCallError
     false
   ensure
     sock.close rescue nil
@@ -33,28 +32,27 @@ def try_connect(host, port)
 end
 
 def pick_host(srv_list)
-  srv_list.sort_by!(&:priority).chunk(&:priority).sort.each do |priority, srv_list|
-    sum = srv_list.inject(0) { |sum, srv| sum + srv.weight}
+  if srv_list.empty?
+    return srv_list
+  end
 
-    if srv_list.empty?
-      return srv_list
-    end
-
-    while sum > 0 do
+  srv_list.sort_by!(&:priority).chunk(&:priority).sort.each do |_, list|
+    sum = list.inject(0) { |sum, srv| sum + srv.weight}
+    while sum > 0 && list.count > 1 do
       s = 0
       select = Integer(rand(sum))
-      srv_list.each_with_index do |srv, index|
+      list.each_with_index do |srv, index|
         s += srv.weight
         if s > select
           if index > 0
-            srv_list[0], srv_list[index] = srv_list[index], srv_list[0]
+            list[0], list[index] = list[index], list[0]
           end
           break
         end
       end
-      sum -= srv_list[0].weight
+      sum -= list[0].weight
     end
-    srv_list
+    list
   end
   srv_list
 end
@@ -65,3 +63,10 @@ transport = 'tcp'
 host = "_#{srv_service_name}._#{transport}.#{@host}"
 
 d = resolve_srv(host)
+d = pick_host(d)
+pp d
+d.select! do |s|
+  try_connect(s.target, s.port)
+end
+pp '^^'
+pp d
