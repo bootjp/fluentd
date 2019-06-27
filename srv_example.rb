@@ -6,9 +6,19 @@ SRV = Struct.new(
     :priority,
     :weight,
     :port,
-    :target,
-    :available
-)
+    :target
+) do
+  def available?
+    begin
+        sock = TCPSocket.open(target, port)
+      true
+    rescue SocketError, SystemCallError
+      false
+    ensure
+      sock.close rescue nil
+    end
+  end
+end
 
 def resolve_srv(host)
   res = []
@@ -18,17 +28,6 @@ def resolve_srv(host)
     res.push(srv)
   end
   res
-end
-
-def try_connect(host, port)
-  begin
-    sock = TCPSocket.open(host, port)
-    true
-  rescue SocketError, SystemCallError
-    false
-  ensure
-    sock.close rescue nil
-  end
 end
 
 def pick_host(srv_list)
@@ -64,9 +63,8 @@ host = "_#{srv_service_name}._#{transport}.#{@host}"
 
 d = resolve_srv(host)
 d = pick_host(d)
-pp d
+
 d.select! do |s|
-  try_connect(s.target, s.port)
+  s.available?
 end
-pp '^^'
 pp d
