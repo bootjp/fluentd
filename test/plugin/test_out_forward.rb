@@ -5,6 +5,7 @@ require 'flexmock/test_unit'
 
 require 'fluent/test/driver/input'
 require 'fluent/plugin/in_forward'
+require 'pp'
 
 class ForwardOutputTest < Test::Unit::TestCase
   def setup
@@ -252,31 +253,6 @@ EOL
       verify_connection_at_startup true
     ])
     assert_true d.instance.verify_connection_at_startup
-  end
-
-  test 'enable_dns_srv is disabled in default' do
-    @d = d = create_driver(CONFIG)
-    assert_false d.instance.enable_dns_srv
-  end
-
-  test 'enable_dns_srv can be enabled' do
-    @d = d = create_driver(CONFIG + %[
-      enable_dns_srv true
-    ])
-    assert_true d.instance.enable_dns_srv
-  end
-
-  test 'srv_service_name is default fluentd' do
-    @d = d = create_driver(CONFIG)
-    assert_equal 'fluentd', d.instance.srv_service_name
-  end
-
-  test 'srv_service_name is can be change' do
-    @d = d = create_driver(CONFIG + %[
-      enable_dns_srv true
-      srv_service_name in_forward
-    ])
-    assert_equal 'in_forward', d.instance.srv_service_name
   end
 
   test 'send tags in str (utf-8 strings)' do
@@ -627,6 +603,69 @@ EOL
     assert{ logs.any?{|log| log.include?("no response from node. regard it as unavailable.") } }
   end
 
+
+  test 'enable_dns_srv is disabled in default' do
+    @d = d = create_driver(CONFIG)
+    node = d.instance.nodes.first
+    assert_false node.enable_dns_srv
+  end
+
+  test 'enable_dns_srv can be enabled' do
+    @d = d = create_driver(%[
+      <server>
+        enable_dns_srv true
+        host #{TARGET_HOST}
+        port #{TARGET_PORT}
+      </server>
+    ])
+    node = d.instance.nodes.first
+    assert_true node.enable_dns_srv
+  end
+
+  test 'srv_service_name is default fluentd' do
+    @d = d = create_driver(CONFIG)
+    node = d.instance.nodes.first
+    assert_equal 'fluentd', node.srv_service_name
+  end
+
+  test 'srv_service_name is can be change' do
+    @d = d = create_driver(%[
+      <server>
+        enable_dns_srv true
+        srv_service_name in_forward
+        host #{TARGET_HOST}
+        port #{TARGET_PORT}
+      </server>
+    ])
+    node = d.instance.nodes.first
+    assert_equal 'in_forward', node.srv_service_name
+  end
+
+  test 'srv_service_protocol is default tcp' do
+    @d = d = create_driver(%[
+      <server>
+        host #{TARGET_HOST}
+        port #{TARGET_PORT}
+      </server>
+    ])
+    node = d.instance.nodes.first
+    assert_equal 'tcp', node.srv_service_protocol
+  end
+
+  test 'srv_service_protocol is can be change' do
+    @d = d = create_driver(%[
+      <server>
+        srv_service_name in_forward
+        srv_service_protocol udp
+        host #{TARGET_HOST}
+        port #{TARGET_PORT}
+      </server>
+    ])
+    node = d.instance.nodes.first
+    assert_equal 'udp', node.srv_service_protocol
+  end
+
+  
   test 'authentication_with_shared_key' do
     input_conf = TARGET_CONFIG + %[
                    <security>
