@@ -23,6 +23,7 @@ require 'fluent/compat/socket_util'
 
 require 'resolv'
 require 'socket'
+require 'pp'
 
 module Fluent::Plugin
   class ForwardOutput < Output
@@ -998,18 +999,26 @@ module Fluent::Plugin
 
       def resolve_dns!
         if @enable_dns_srv
-          host = "_#{:srv_service_name}._#{:transport}.#{@host}"
+          pp "enable_dns_srv"
+          #     _fluentd._tcp.bootjp.me
+          host = "_#{@srv_service_name}._#{@srv_service_protocol}.#{@host}"
+          pp host
           d = resolve_srv(host)
           d = srv_list_sort_priority_weight(d)
+          pp d
           srv = d.find {|s| s.available? }
+          pp srv
           unless srv.nil?
             @host = srv.target
             @port = srv.port
           end
+        pp @host
+        pp @port
         end
         addrinfo_list = Socket.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
         addrinfo = @sender.dns_round_robin ? addrinfo_list.sample : addrinfo_list.first
         @sockaddr = Socket.pack_sockaddr_in(addrinfo[1], addrinfo[3]) # used by on_heartbeat
+        pp addrinfo[3]
         addrinfo[3]
       end
       private :resolve_dns!
