@@ -23,7 +23,6 @@ require 'fluent/compat/socket_util'
 
 require 'resolv'
 require 'socket'
-require 'pp'
 
 module Fluent::Plugin
   class ForwardOutput < Output
@@ -744,6 +743,11 @@ module Fluent::Plugin
         @enable_dns_srv = server.enable_dns_srv
         @srv_service_name = server.srv_service_name
         @srv_service_protocol = server.srv_service_protocol
+        @using_srv = false
+        @original_host = nil
+        @original_port = nil
+        @srv_servers = []
+        @srv_mutex = Mutex.new
 
         @unpacker = Fluent::Engine.msgpack_unpacker
 
@@ -997,28 +1001,51 @@ module Fluent::Plugin
         srv_list
       end
 
+      def switch_original_host!
+        @srv_mutex.synchronize do
+          @host = @original_host
+          @port = @original_port
+          @using_srv = false
+        end
+      end
+
       def resolve_dns!
         if @enable_dns_srv
-          pp "enable_dns_srv"
-          #     _fluentd._tcp.bootjp.me
-          host = "_#{@srv_service_name}._#{@srv_service_protocol}.#{@host}"
-          pp host
-          d = resolve_srv(host)
-          d = srv_list_sort_priority_weight(d)
-          pp d
-          srv = d.find {|s| s.available? }
-          pp srv
-          unless srv.nil?
-            @host = srv.target
-            @port = srv.port
+          if @using_srv
+            switch_original_host!
           end
-        pp @host
-        pp @port
+
+          host = "_#{@srv_service_name}._#{@srv_service_protocol}.#{@host}"
+          @log.info "srv try hostname" , host: host
+          resp = resolve_srv(host)
+
+          if resp.empty?
+            @log.warn "srv record empty response ", host: host
+          end
+
+          resp = srv_list_sort_priority_weight(resp)
+
+          available = resp.find {|s| s.available? }
+          if available.nil?
+            @log.warn "srv record does not available node. try using A record ", host: host
+            if @using_srv
+              switch_original_host!
+            end
+          else
+            # swap config host to srv response host.
+            @srv_mutex.synchronize do
+              @using_srv = true
+              @original_host = @host
+              @original_port = @port
+              @host = available.target
+              @port = available.port
+              @log.info "using srv record response '#{@name}'", host: available.target, port: available.port
+              end
+          end
         end
         addrinfo_list = Socket.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
         addrinfo = @sender.dns_round_robin ? addrinfo_list.sample : addrinfo_list.first
         @sockaddr = Socket.pack_sockaddr_in(addrinfo[1], addrinfo[3]) # used by on_heartbeat
-        pp addrinfo[3]
         addrinfo[3]
       end
       private :resolve_dns!
