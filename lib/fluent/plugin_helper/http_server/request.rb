@@ -14,8 +14,29 @@
 #    limitations under the License.
 #
 
+require 'async/http/protocol'
+require 'fluent/plugin_helper/http_server/methods'
+
 module Fluent
+  module PluginHelper
+    module HttpServer
+      class Request
+        attr_reader :path, :query_string
 
-  VERSION = '1.6.0'
+        def initialize(request)
+          @request = request
+          path = request.path
+          @path, @query_string = path.split('?', 2)
+        end
 
+        def query
+          @query_string && CGI.parse(@query_string)
+        end
+
+        def body
+          @request.body && @request.body.read
+        end
+      end
+    end
+  end
 end

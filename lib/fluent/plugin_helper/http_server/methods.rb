@@ -15,7 +15,21 @@
 #
 
 module Fluent
+  module PluginHelper
+    module HttpServer
+      module Methods
+        GET = 'GET'.freeze
+        HEAD = 'HEAD'.freeze
+        POST = 'POST'.freeze
+        PUT = 'PUT'.freeze
+        PATCH = 'PATCH'.freeze
+        DELETE = 'DELETE'.freeze
+        OPTIONS = 'OPTIONS'.freeze
+        CONNECT = 'CONNECT'.freeze
+        TRACE = 'TRACE'.freeze
 
-  VERSION = '1.6.0'
-
+        ALL = [GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, OPTIONS, TRACE].freeze
+      end
+    end
+  end
 end
