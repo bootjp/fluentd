@@ -750,7 +750,6 @@ module Fluent::Plugin
         @using_srv = false
         @original_host = nil
         @original_port = nil
-        @srv_servers = []
         @srv_mutex = Mutex.new
 
         @unpacker = Fluent::Engine.msgpack_unpacker
@@ -980,8 +979,8 @@ module Fluent::Plugin
       end
 
       def srv_list_sort_priority_weight(srv_list)
-        if srv_list.empty?
-          return srv_list
+        if srv_list.nil? || srv_list.empty?
+          return []
         end
 
         srv_list.sort_by!(&:priority).chunk(&:priority).sort.each do |_, list|
@@ -1006,46 +1005,53 @@ module Fluent::Plugin
       end
 
       def switch_original_host!
-        @srv_mutex.synchronize do
-          @host = @original_host
-          @port = @original_port
-          @using_srv = false
+        @host = @original_host
+        @port = @original_port
+        @using_srv = false
+      end
+
+      def resolve_srv!
+        if @using_srv
+          switch_original_host!
         end
+
+        host = "_#{@srv_service_name}._#{@srv_service_protocol}.#{@host}"
+        @log.info "srv try resolve hostname" , host: host
+        resp = resolve_srv(host)
+
+        if resp.empty?
+          # empty response is tried original host.
+          if @using_srv
+            switch_original_host!
+          end
+          @log.warn "srv record empty response ", host: host
+          return
+        end
+
+        resp = srv_list_sort_priority_weight(resp)
+        available = resp.find {|s| s.available? }
+
+        if available.nil?
+          # unavailable is tried original host.
+          if @using_srv
+            switch_original_host!
+          end
+          @log.warn "srv record does not available node. try using A record ", host: host
+          return
+        end
+
+        # swap config host to srv response host.
+        @using_srv = true
+        @original_host = @host
+        @original_port = @port
+        @host = available.target
+        @port = available.port
+        @log.info "using srv record response '#{@name}'", host: available.target, port: available.port
       end
 
       def resolve_dns!
         if @enable_dns_srv
-          if @using_srv
-            switch_original_host!
-          end
-
-          host = "_#{@srv_service_name}._#{@srv_service_protocol}.#{@host}"
-          @log.info "srv try hostname" , host: host
-          resp = resolve_srv(host)
-
-          if resp.empty?
-            @log.warn "srv record empty response ", host: host
-          end
-
-          resp = srv_list_sort_priority_weight(resp)
-
-          available = resp.find {|s| s.available? }
-          if available.nil?
-            @log.warn "srv record does not available node. try using A record ", host: host
-            if @using_srv
-              switch_original_host!
-            end
-          else
-            # swap config host to srv response host.
-            @srv_mutex.synchronize do
-              @using_srv = true
-              @original_host = @host
-              @original_port = @port
-              @host = available.target
-              @port = available.port
-              @log.info "using srv record response '#{@name}'", host: available.target, port: available.port
-              end
-          end
+          resolve_srv!
         end
         addrinfo_list = Socket.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
         addrinfo = @sender.dns_round_robin ? addrinfo_list.sample : addrinfo_list.first
