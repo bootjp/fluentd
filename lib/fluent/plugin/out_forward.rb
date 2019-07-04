@@ -1042,9 +1042,9 @@ module Fluent::Plugin
       end
 
       def resolve_dns!
-        # if @enable_dns_srv
-        #   resolve_srv!
-        # end
+        if @enable_dns_srv
+          resolve_srv!
+        end
         addrinfo_list = Socket.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
         addrinfo = @sender.dns_round_robin ? addrinfo_list.sample : addrinfo_list.first
         @sockaddr = Socket.pack_sockaddr_in(addrinfo[1], addrinfo[3]) # used by on_heartbeat

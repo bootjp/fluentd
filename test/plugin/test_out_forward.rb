@@ -5,7 +5,6 @@ require 'flexmock/test_unit'
 
 require 'fluent/test/driver/input'
 require 'fluent/plugin/in_forward'
-require 'pp'
 
 class ForwardOutputTest < Test::Unit::TestCase
   def setup
