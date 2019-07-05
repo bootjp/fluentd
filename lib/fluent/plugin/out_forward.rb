@@ -1020,6 +1020,10 @@ module Fluent::Plugin
         resp = resolve_srv(host)
 
         if resp.empty?
+          # empty response is tried original host.
+          if @using_srv
+            switch_original_host!
+          end
           @log.warn "srv record empty response ", host: host
           return
         end
@@ -1028,6 +1032,10 @@ module Fluent::Plugin
         available = resp.find {|s| s.available? }
 
         if available.nil?
+          # unavailable is tried original host.
+          if @using_srv
+            switch_original_host!
+          end
           @log.warn "srv record does not available node. try using A record ", host: host
           return
         end
