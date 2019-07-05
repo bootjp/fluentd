@@ -979,8 +979,8 @@ module Fluent::Plugin
       end
 
       def srv_list_sort_priority_weight(srv_list)
-        if srv_list.empty?
-          return srv_list
+        if srv_list.nil? || srv_list.empty?
+          return []
         end
 
         srv_list.sort_by!(&:priority).chunk(&:priority).sort.each do |_, list|
