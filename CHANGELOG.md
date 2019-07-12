@@ -1,5 +1,28 @@
 # v1.6
 
+## Release v1.6.2 - 2019/07/11
+
+### Bug fixes
+
+* http_server helper: Add title argument to support multiple servers
+  https://github.com/fluent/fluentd/pull/2493
+
+## Release v1.6.1 - 2019/07/10
+
+### Enhancement
+
+* socket/cert: Support all private keys OpenSSL supports, not only RSA.
+  https://github.com/fluent/fluentd/pull/2487
+* output/buffer: Improve statistics method performance
+  https://github.com/fluent/fluentd/pull/2491
+
+### Bug fixes
+
+* plugin_config_formatter: update new doc URL
+  https://github.com/fluent/fluentd/pull/2481
+* out_forward: Avoid zero division error when there are no available nodes
+  https://github.com/fluent/fluentd/pull/2482
+
 ## Release v1.6.0 - 2019/07/01
 
 ### New feature
