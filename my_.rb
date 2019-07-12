@@ -33,7 +33,6 @@ def srv_list_sort_priority_weight(srv_list)
   end
 
   # Sort the list by priority (lowest number first)
-
   last = 0
   current = 1
 
@@ -42,7 +41,7 @@ def srv_list_sort_priority_weight(srv_list)
   srv_list.sort_by!(&:priority)
 
   until (srv_list.size - 1) < current do
-    if srv_list[last]['priority'] != srv_list[current]['priority']
+    if srv_list[last].priority != srv_list[current].priority
       ret.push weight_by_shuffle srv_list[last...current]
       last = current
     end
@@ -109,33 +108,3 @@ def weight_by_shuffle(srv_list)
   end
   ret
 end
-
-ret = srv_list_sort_priority_weight(
-    [
-      # SRV.new(0, 100, 22424, "aas"),
-      SRV.new(2, 0, 22424, "d"),
-      SRV.new(2, 20, 22424, "cc"),
-      SRV.new(2, 10, 22424, "aa"),
-      # SRV.new(4, 100, 22424, "localhost"),
-      SRV.new(2, 100, 22424, "bnbb"),
-    ]
-)
-#
-#
-# ret = weight_by_shuffle(
-#     [
-#       # SRV.new(0, 100, 22424, "localhost"),
-#         SRV.new(2, 30, 22424, "vvvv"),
-#       SRV.new(2, 60, 22424, "localhost"),
-#       SRV.new(2, 40, 22424, "localhost"),
-#         # SRV.new(2, 30, 22424, "vvvv"),
-#       # SRV.new(2, 100, 22424, "localhost"),
-#     ]
-# =begin
-#     ].shuffle!
-# =end
-# )
-# #
-pp "--"
-
-pp ret
