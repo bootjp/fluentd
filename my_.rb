@@ -91,15 +91,14 @@ def weight_by_shuffle(srv_list)
 
   srv_list = weight_shuffle(srv_list)
   ret = []
-  # Then choose a uniform random number between 0 and the sum computed (inclusive), and select the RR whose running sum value is the first in the selected order which is greater than or equal to the random number selected.
-  until sum <= 0 || srv_list.length == 0
-    # Then choose a uniform random number between 0 and the sum computed (inclusive),
+  # Then choose a uniform random number between 0 and the sum computed (inclusive),
+  # and select the RR whose running sum value is the first in the selected order which is greater than or equal to the random number selected.
+  until sum <= 0 || srv_list.empty?
     selector = Integer(rand(sum))
     running_sum = 0
 
     srv_list.each_index do |index|
       running_sum += srv_list[index].weight
-      # and select the RR whose running sum value is the first in the selected order which is greater than or equal to the random number selected.
       if running_sum > selector
         ret.push srv_list[index]
         sum -= srv_list[index].weight
@@ -110,8 +109,6 @@ def weight_by_shuffle(srv_list)
   end
   ret
 end
-
-
 
 ret = srv_list_sort_priority_weight(
     [
