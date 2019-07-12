@@ -1,4 +1,3 @@
-require "pp"
 
 SRV = Struct.new(
     :priority,
@@ -18,7 +17,6 @@ SRV = Struct.new(
   end
 end
 
-## TODO ADD TEST
 def srv_list_sort_priority_weight(srv_list)
   if srv_list.nil? || srv_list.empty?
     return []
@@ -28,7 +26,7 @@ def srv_list_sort_priority_weight(srv_list)
   # SRV RR which specifies the requested Service and Protocol in
   # the reply
   sum = srv_list.inject(0) { |sum, srv| sum + srv.weight}
-  if sum == 0 || srv_list.count <= 1
+  if sum == 0 || srv_list.empty?
     return srv_list
   end
 
@@ -37,9 +35,7 @@ def srv_list_sort_priority_weight(srv_list)
   current = 1
 
   ret = []
-  srv_list.sort_by!(&:weight)
   srv_list.sort_by!(&:priority)
-
   until (srv_list.size - 1) < current do
     if srv_list[last].priority != srv_list[current].priority
       ret.push weight_by_shuffle srv_list[last...current]
@@ -51,7 +47,6 @@ def srv_list_sort_priority_weight(srv_list)
   ret
 end
 
-## TODO ADD TEST
 def weight_shuffle(srv_list)
   if srv_list.nil? || srv_list.empty?
     return []
@@ -78,7 +73,6 @@ def weight_shuffle(srv_list)
   srv_list
 end
 
-## TODO ADD TEST
 def weight_by_shuffle(srv_list)
   if srv_list.nil? || srv_list.empty?
     return []
