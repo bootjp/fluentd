@@ -756,7 +756,6 @@ module Fluent::Plugin
         @using_srv = false
         @original_host = nil
         @original_port = nil
-        @srv_mutex = Mutex.new
 
         @unpacker = Fluent::Engine.msgpack_unpacker
 
